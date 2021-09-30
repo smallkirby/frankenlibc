@@ -165,7 +165,7 @@ rumpkernel_build_test()
 	then
 		${MAKE} -C tests/iputils clean
 		CC="${BINDIR}/${COMPILER}" ${MAKE} -C tests/iputils ping ping6
-		cp tests/iputils/ping tests/iputils/ping6 ${OBJDIR}/
+		install tests/iputils/ping tests/iputils/ping6 ${OBJDIR}/
 		${MAKE} -C tests/iputils clean
 	fi
 }
