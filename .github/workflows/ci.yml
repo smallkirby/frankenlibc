@@ -1,0 +1,198 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+      - '**'
+    tags:
+      - 'milestone-*'
+  pull_request:
+    branches:
+      - master
+      - 'release/**'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+jobs:
+  #
+  # Build/tests
+  #
+  integration:
+    name: test
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - displayTargetName: linux-amd64
+            os: linux
+            alias: linux
+            runs_on: ubuntu-18.04
+            arch: amd64
+            cc: clang
+            cxx: clang++
+          - displayTargetName: linux-arm32
+            os: linux
+            alias: linux
+            runs_on: ubuntu-18.04
+            arch: arm32
+            cc: arm-linux-gnueabihf-gcc
+            cxx: g++
+          - displayTargetName: linux-arm64
+            os: linux
+            alias: linux
+            runs_on: ubuntu-18.04
+            arch: arm64
+            cc: aarch64-linux-gnu-gcc
+            cxx: g++
+          - displayTargetName: macOS-amd64
+            os: macos
+            alias: osx
+            runs_on: macos-11
+            arch: amd64
+            cc: clang
+            cxx: clang++
+    timeout-minutes: 100
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      USE_CCACHE: 1
+      working-directory: src/frankenlibc
+      ARCH: ${{ matrix.arch }}
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+
+    defaults:
+      run:
+        working-directory: src/frankenlibc
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: src/frankenlibc
+          submodules: true
+
+      - name: Install LLVM and Clang
+        if: runner.os == 'linux' && matrix.arch == 'amd64'
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "10.0"
+
+      - name: Set env
+        shell: bash
+        run: |
+          echo "/usr/lib/ccache/bin:/usr/lib/ccache:/usr/local/opt/ccache/libexec:$HOME/.local/bin:${{ github.workspace }}/bin" >> $GITHUB_PATH
+          echo "export PATH=/usr/lib/ccache/bin:/usr/lib/ccache:/usr/local/opt/ccache/libexec:$HOME/.local/bin:${{ github.workspace }}/bin:$PATH" >> $HOME/.bashrc
+
+      - uses: actions/cache@v2
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.os }}-${{ matrix.arch }}-ccache-build-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-${{ matrix.arch }}-ccache-build-
+
+      - name: pkg dependency
+        run: |
+          pip install yamlish
+
+      - name: pkg dependency (linux-amd64)
+        if: runner.os == 'linux' && matrix.arch == 'amd64'
+        run: |
+          sudo apt update -y
+          sudo apt install -y ccache
+          sudo ln -sf /usr/bin/ccache /usr/lib/ccache/clang
+          sudo ln -sf /usr/bin/ccache /usr/lib/ccache/clang++
+
+      - name: pkg dependency (linux-arm32)
+        if: runner.os == 'linux' && matrix.arch == 'arm32'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y crossbuild-essential-armhf ccache
+
+      - name: pkg dependency (linux-arm64)
+        if: runner.os == 'linux' && matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y crossbuild-essential-arm64 ccache
+
+      - name: pkg dependency (macOS)
+        if: runner.os == 'macos'
+        run: |
+          mkdir -p ~/.local/bin
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install gnu-sed ccache e2fsprogs
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install binutils coreutils jq
+          ln -sf /usr/local/bin/gsed ~/.local/bin/sed
+          ln -sf /usr/local/bin/gdate ~/.local/bin/date
+          ln -sf /usr/local/opt/e2fsprogs/sbin/mkfs.ext4 ~/.local/bin/
+          ln -sf /usr/local/opt/coreutils/bin/gcp ~/.local/bin/cp
+          ln -sf /usr/local/opt/binutils/bin/objcopy ~/.local/bin/objcopy
+
+      - name: clean
+        run: |
+          make distclean
+
+      - name: patch
+        run: |
+          for file in `find patches/ -maxdepth 1 -type f` ; do patch -p1 < $file ; done
+          for file in `find patches/${{ matrix.alias }}/ -maxdepth 1 -type f` ; do patch -p1 < $file ; done
+
+      - name: build
+        run: |
+          sudo mkdir -p /opt/rump && sudo chown -R $USER /opt/
+          ./build.sh -j4 -d /opt/rump -q -k linux notest
+
+      - name: run tests
+        if: matrix.arch != 'arm32' && matrix.arch != 'arm64'
+        run: |
+          RUMPDIR=/opt/rump RUMPOBJ=`pwd`/rumpobj make -C tests run
+
+      - name: build (tiny)
+        run: |
+          KCONFIG=tinyconfig ./build.sh -j4 -d /opt/rump-tiny -o rumpobj-tiny -q -k linux notest
+
+      - name: run tests (tiny)
+        if: matrix.arch != 'arm32' && matrix.arch != 'arm64'
+        run: |
+          RUMPDIR=/opt/rump-tiny RUMPOBJ=`pwd`/rumpobj-tiny make -C tests run
+
+      - name: prepare assets
+        run: |
+          # for normal build
+          install rumpobj/tests/ping  /opt/rump/bin
+          install rumpobj/tests/ping6 /opt/rump/bin
+          install rumpobj/tests/hello /opt/rump/bin
+          install rumpobj/tests/lkick /opt/rump/bin
+          tar cfz /tmp/frankenlibc-${{ matrix.arch }}-${{ matrix.alias }}.tar.gz /opt/rump/
+          # for tiny build
+          install rumpobj-tiny/tests/ping  /opt/rump-tiny/bin
+          install rumpobj-tiny/tests/ping6 /opt/rump-tiny/bin
+          install rumpobj-tiny/tests/hello /opt/rump-tiny/bin
+          install rumpobj-tiny/tests/lkick /opt/rump-tiny/bin
+          tar cfz /tmp/frankenlibc-tiny-${{ matrix.arch }}-${{ matrix.alias }}.tar.gz /opt/rump-tiny/
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: latest
+          draft: true
+          files: |
+            /tmp/frankenlibc-${{ matrix.arch }}-${{ matrix.alias }}.tar.gz
+            /tmp/frankenlibc-tiny-${{ matrix.arch }}-${{ matrix.alias }}.tar.gz
+
+      - name: ccache stat
+        run: |
+          ccache --show-stats
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
+      - name: Annotate
+        uses: yuzutech/annotations-action@v0.3.0
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          input: "${{env.working-directory}}/annotations.json"
+          title: "dmesg (${{ matrix.runs_on }})"
