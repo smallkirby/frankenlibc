@@ -176,8 +176,8 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          name: latest
-          draft: true
+          tag_name: latest
+          prerelease: true
           files: |
             /tmp/frankenlibc-${{ matrix.arch }}-${{ matrix.alias }}.tar.gz
             /tmp/frankenlibc-tiny-${{ matrix.arch }}-${{ matrix.alias }}.tar.gz
