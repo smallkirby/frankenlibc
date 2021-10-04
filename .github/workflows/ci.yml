@@ -174,6 +174,7 @@ jobs:
           tar cfz /tmp/frankenlibc-tiny-${{ matrix.arch }}-${{ matrix.alias }}.tar.gz /opt/rump-tiny/
 
       - name: Release
+        if: github.ref == 'refs/heads/lkl-musl-macho'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: latest
