@@ -12,7 +12,7 @@ index 7ca4d1a8da6f..ba3e3a268108 100644
  
  int lkl_load_config_json(struct lkl_config *cfg, char *jstr);
 diff --git a/linux/tools/lkl/lib/config.c b/linux/tools/lkl/lib/config.c
-index c5d25592f27b..2f1e9686de3b 100644
+index c5d25592f27b..7a4adc7e21ce 100644
 --- a/linux/tools/lkl/lib/config.c
 +++ b/linux/tools/lkl/lib/config.c
 @@ -192,6 +192,8 @@ int lkl_load_config_json(struct lkl_config *cfg, char *jstr)
@@ -32,6 +32,15 @@ index c5d25592f27b..2f1e9686de3b 100644
  
  	for (iface = cfg->ifaces; iface; iface = iface->next, i++) {
  		lkl_printf("ifname[%d] = %s\n", i, iface->ifname);
+@@ -592,7 +595,7 @@ static int lkl_config_netdev_configure(struct lkl_config *cfg,
+ 
+ 		int nmlen = atoi(iface->ifnetmask_len);
+ 
+-		if (addr != LKL_INADDR_NONE && nmlen > 0 && nmlen < 32) {
++		if (addr != LKL_INADDR_NONE && nmlen > 0 && nmlen <= 32) {
+ 			ret = lkl_if_set_ipv4(nd_ifindex, addr, nmlen);
+ 			if (ret < 0)
+ 				lkl_printf("failed to set IPv4 address: %s\n",
 @@ -697,6 +700,7 @@ static int lkl_clean_config(struct lkl_config *cfg)
  	free_cfgparam(cfg->boot_cmdline);
  	free_cfgparam(cfg->dump);
