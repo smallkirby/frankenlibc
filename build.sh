@@ -47,6 +47,8 @@ TARGET=$(LC_ALL=C ${CC-cc} -v 2>&1 | sed -n 's/^Target: //p' )
 case ${TARGET} in
 *-linux*)
 	OS=linux
+	export HOST_CFLAGS="-fcommon"
+	EXTRA_CFLAGS+=" -fcommon"
 	;;
 *-netbsd*)
 	OS=netbsd
