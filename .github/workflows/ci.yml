@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - '**'
     tags:
       - 'milestone-*'
   pull_request:
