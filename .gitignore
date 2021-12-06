@@ -5,3 +5,5 @@ ktrace.out
 .depend
 *.d
 *.lo
+disk.img
+linux
