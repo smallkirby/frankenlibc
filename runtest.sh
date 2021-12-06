@@ -29,7 +29,5 @@ echo "[+] compiling test: $TESTNAME"
 make -C tests "$TESTNAME"
 
 echo "[+] running test: $TESTNAME"
-RUMP_VERBOSE=1 ./rump/bin/rexec ./tests/"$TESTNAME"
-
-
-
+patchelf --set-interpreter "$(pwd)"/rump/lib/ld-frankenlibc-x86_64-linux.so.1 ./tests/"$TESTNAME"
+RUMP_VERBOSE=1 ./rump/bin/rexec ./tests/"$TESTNAME" rootfs:disk.img
