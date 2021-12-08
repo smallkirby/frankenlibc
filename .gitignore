@@ -8,3 +8,7 @@ ktrace.out
 disk.img
 linux
 busybox
+test.c
+test
+.vscode
+.gdb_history

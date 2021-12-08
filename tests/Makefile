@@ -6,10 +6,12 @@ BINDIR?=$(RUMPDIR)/bin
 REXEC=${BINDIR}/rexec
 INCDIR=$(RUMPDIR)/include
 ifneq ($(OS),darwin)
-LDFLAGS+=-static
+#LDFLAGS+=-static
+LDFLAGS+=
 endif
 LDFLAGSXX+=
 CFLAGS+=
+override CC=../rump/bin/rumprun-cc
 
 DEPS=$(LIBDIR)/libc.a
 
@@ -66,7 +68,7 @@ $(OBJDIR)/cat:		cat.c $(DEPS)
 
 $(OBJDIR)/fork-test:	fork-test.c $(DEPS)
 			@mkdir -p $(OBJDIR)
-			${CC} ${CFLAGS} ${LDFLAGS} -o $@ fork-test.c
+			RUMPDIR=../rump RUMPOBJ=../rumpobj ${CC} ${CFLAGS} ${LDFLAGS} -o $@ fork-test.c
 
 $(OBJDIR)/lkick:	lkick.c $(DEPS)
 			@mkdir -p $(OBJDIR)
