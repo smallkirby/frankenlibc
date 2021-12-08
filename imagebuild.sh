@@ -31,8 +31,11 @@ if [ "$#" -ne "1" ]; then
 fi
 TESTNAME="$1"
 
-echo "[+] compiling test: $TESTNAME"
-gcc -fPIC -pie "$TESTDIR"/"$TESTNAME".c -o "$TESTDIR"/"$TESTNAME" || _error_exit 1 "compile test"
+if [ "$NOBUILD" == 1 ]; then
+  echo "$NOBUILD"
+  echo "[+] compiling test: $TESTNAME"
+  gcc -fPIC -pie "$TESTDIR"/"$TESTNAME".c -o "$TESTDIR"/"$TESTNAME" || _error_exit 1 "compile test"
+fi
 
 current_preter=$(ldd tests/"$TESTNAME" | grep "ld-*" | xargs;)
 current_preter="${current_preter%% *}"

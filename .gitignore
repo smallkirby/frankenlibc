@@ -7,3 +7,4 @@ ktrace.out
 *.lo
 disk.img
 linux
+busybox
