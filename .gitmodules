@@ -1,6 +1,6 @@
 [submodule "lkl-linux"]
 	path = linux
-	url = git://github.com/ukontainer/lkl-linux
+	url = git://github.com/smallkirby/lkl-linux
 [submodule "musl"]
 	path = musl
 	url = git://github.com/ukontainer/musl.git

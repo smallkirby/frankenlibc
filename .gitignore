@@ -6,9 +6,9 @@ ktrace.out
 *.d
 *.lo
 disk.img
-linux
 busybox
 test.c
 test
 .vscode
 .gdb_history
+core

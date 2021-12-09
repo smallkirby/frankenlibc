@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INTERPRETER=/lib/ld-musl-x86_64.so.1
-TESTDIR=./tests
+TESTDIR=./tests/
 DISKNAME=disk.img
 MNTPOINT=./mnt
 RUMPLIBC=./rump/lib/libc.so
@@ -61,6 +61,8 @@ fi
 sudo cp "$RUMPLIBC" "$MNTPOINT"/lib/
 sudo cp "$RUMPLIBC" "$MNTPOINT$INTERPRETER"
 sudo cp "$TESTDIR"/"$TESTNAME" "$MNTPOINT"/"$TESTNAME"
+#sudo cp "$TESTDIR"/"$TESTNAME" "$MNTPOINT"/"$TESTNAME"
+
 
 echo "[+] cleaning up mount point"
 sudo umount "$MNTPOINT" || _error_exit 1 "umount"
